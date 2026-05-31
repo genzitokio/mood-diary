@@ -17,3 +17,7 @@ class MoodOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MoodCreated(MoodOut):
+    recommendation: str | None = None

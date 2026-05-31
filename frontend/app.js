@@ -8,10 +8,12 @@ const formStatus = document.getElementById("form-status");
 const entriesList = document.getElementById("entries");
 const chartCanvas = document.getElementById("chart");
 const pieCanvas = document.getElementById("pie");
+const weekdayCanvas = document.getElementById("weekday-chart");
 const summaryEl = document.getElementById("summary");
 
 let chart = null;
 let pie = null;
+let weekdayChart = null;
 
 function setStatus(msg, isError = false) {
   formStatus.textContent = msg;
@@ -162,17 +164,49 @@ function renderSummary(summary) {
   `;
 }
 
+function renderWeekday(weekday) {
+  const labels = weekday.map((w) => w.weekday);
+  const scores = weekday.map((w) => w.avg_score);
+  const colors = scores.map((s) =>
+    s > 0.1 ? "#4ade80" : s < -0.1 ? "#f87171" : "#94a3b8"
+  );
+
+  if (weekdayChart) weekdayChart.destroy();
+  weekdayChart = new Chart(weekdayCanvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "средний score",
+        data: scores,
+        backgroundColor: colors,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { suggestedMin: -1, suggestedMax: 1, ticks: { color: "#8b91a3" } },
+        x: { ticks: { color: "#8b91a3" } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
 async function refresh() {
   try {
-    const [entries, daily, summary] = await Promise.all([
+    const [entries, daily, summary, weekday] = await Promise.all([
       api("/entries"),
       api("/analytics/daily"),
       api("/analytics/summary"),
+      api("/analytics/weekday"),
     ]);
     renderEntries(entries);
     renderChart(daily);
     renderSummary(summary);
     renderPie(summary);
+    renderWeekday(weekday);
   } catch (e) {
     setStatus(`ошибка загрузки: ${e.message}`, true);
   }
@@ -189,7 +223,8 @@ form.addEventListener("submit", async (ev) => {
       method: "POST",
       body: JSON.stringify({ text, emoji: emojiInput.value || null }),
     });
-    setStatus(`сохранено: ${created.sentiment_label} (${created.sentiment_score.toFixed(2)})`);
+    const head = `сохранено: ${created.sentiment_label} (${created.sentiment_score.toFixed(2)})`;
+    setStatus(created.recommendation ? `${head} — ${created.recommendation}` : head);
     textInput.value = "";
     emojiInput.value = "";
     await refresh();

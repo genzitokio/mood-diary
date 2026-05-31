@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from db import MoodEntry, get_session, init_db
 from ml import predict_sentiment, warmup
-from schemas import MoodCreate, MoodOut
+from recommend import get_recommendation
+from schemas import MoodCreate, MoodCreated, MoodOut
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -30,8 +31,8 @@ def on_startup() -> None:
         warmup()
 
 
-@app.post("/entries", response_model=MoodOut)
-def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -> MoodEntry:
+@app.post("/entries", response_model=MoodCreated)
+def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -> MoodCreated:
     label, score = predict_sentiment(payload.text)
     entry = MoodEntry(
         text=payload.text,
@@ -42,7 +43,15 @@ def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -
     session.add(entry)
     session.commit()
     session.refresh(entry)
-    return entry
+    return MoodCreated(
+        id=entry.id,
+        created_at=entry.created_at,
+        text=entry.text,
+        emoji=entry.emoji,
+        sentiment_label=entry.sentiment_label,
+        sentiment_score=entry.sentiment_score,
+        recommendation=get_recommendation(label),
+    )
 
 
 @app.get("/entries", response_model=list[MoodOut])
@@ -94,6 +103,35 @@ def analytics_daily(session: Session = Depends(get_session)) -> list[dict]:
         }
         for r in rows
     ]
+
+
+@app.get("/analytics/weekday")
+def analytics_weekday(session: Session = Depends(get_session)) -> list[dict]:
+    """Срез по дням недели — как в примере кейса: 'усталость в понедельники'."""
+    # SQLite strftime('%w') → 0=вс, 1=пн ... 6=сб
+    wd = func.strftime("%w", MoodEntry.created_at)
+    stmt = (
+        select(
+            wd.label("wd"),
+            func.count(MoodEntry.id).label("count"),
+            func.avg(MoodEntry.sentiment_score).label("avg_score"),
+        )
+        .group_by(wd)
+    )
+    rows = {r.wd: r for r in session.execute(stmt).all()}
+
+    names = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    # выводим в порядке Пн..Вс
+    out = []
+    for idx, name in enumerate(names):
+        key = str(idx + 1) if idx < 6 else "0"  # 0=вс в SQLite
+        r = rows.get(key)
+        out.append({
+            "weekday": name,
+            "count": int(r.count) if r else 0,
+            "avg_score": float(r.avg_score) if r and r.avg_score is not None else 0.0,
+        })
+    return out
 
 
 @app.get("/analytics/summary")
