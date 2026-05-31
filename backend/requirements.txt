@@ -3,7 +3,10 @@ uvicorn[standard]==0.48.0
 sqlalchemy==2.0.50
 pydantic==2.13.4
 
-# ML stack
+# ML stack.
+# Для CPU-окружения предпочтительнее ставить torch отдельно:
+#     pip install --index-url https://download.pytorch.org/whl/cpu torch
+# Иначе pip потянет CUDA-вариант (~5 ГБ зависимостей).
 transformers>=4.57,<5
 huggingface_hub<1
 torch>=2.4

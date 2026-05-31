@@ -84,8 +84,9 @@ function showRecommendation(text) {
   }
   const safe = escapeHtml(text);
   // линкуем только https?:// — после экранирования спецсимволов URL не разорвётся
+  // не захватываем терминальную пунктуацию: ".", ",", ";", ":", ")", "!"
   const linked = safe.replace(
-    /https?:\/\/[^\s<>"']+/g,
+    /https?:\/\/[^\s<>"']*[^\s<>"'.,;:)!?]/g,
     (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
   );
   recommendationEl.innerHTML = linked;

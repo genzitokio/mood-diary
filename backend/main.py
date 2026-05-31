@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from db import MoodEntry, get_session, init_db
@@ -71,15 +71,9 @@ def analytics_daily(session: Session = Depends(get_session)) -> list[dict]:
             day.label("day"),
             func.count(MoodEntry.id).label("count"),
             func.avg(MoodEntry.sentiment_score).label("avg_score"),
-            func.sum(
-                func.iif(MoodEntry.sentiment_label == "positive", 1, 0)
-            ).label("pos"),
-            func.sum(
-                func.iif(MoodEntry.sentiment_label == "negative", 1, 0)
-            ).label("neg"),
-            func.sum(
-                func.iif(MoodEntry.sentiment_label == "neutral", 1, 0)
-            ).label("neu"),
+            func.sum(case((MoodEntry.sentiment_label == "positive", 1), else_=0)).label("pos"),
+            func.sum(case((MoodEntry.sentiment_label == "negative", 1), else_=0)).label("neg"),
+            func.sum(case((MoodEntry.sentiment_label == "neutral", 1), else_=0)).label("neu"),
         )
         .group_by(day)
         .order_by(day)

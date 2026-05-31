@@ -61,6 +61,11 @@ cd backend
 При первом POST модель (~1.1 ГБ) скачивается в `backend/models_cache/`
 и потом грузится из локального кэша.
 
+> На Windows используйте `.venv\Scripts\pip.exe` и
+> `.venv\Scripts\uvicorn.exe`. На GPU-машине первую строку с
+> `--index-url` можно опустить — pip поставит CUDA-версию torch
+> (~5 ГБ, в этом проекте не нужна).
+
 ## Запуск в Docker
 
 ```bash
