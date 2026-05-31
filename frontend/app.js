@@ -5,6 +5,7 @@ const textInput = document.getElementById("text");
 const emojiInput = document.getElementById("emoji");
 const submitBtn = document.getElementById("submit-btn");
 const formStatus = document.getElementById("form-status");
+const recommendationEl = document.getElementById("recommendation");
 const entriesList = document.getElementById("entries");
 const chartCanvas = document.getElementById("chart");
 const pieCanvas = document.getElementById("pie");
@@ -73,6 +74,22 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   }[c]));
+}
+
+function showRecommendation(text) {
+  if (!text) {
+    recommendationEl.hidden = true;
+    recommendationEl.innerHTML = "";
+    return;
+  }
+  const safe = escapeHtml(text);
+  // линкуем только https?:// — после экранирования спецсимволов URL не разорвётся
+  const linked = safe.replace(
+    /https?:\/\/[^\s<>"']+/g,
+    (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+  );
+  recommendationEl.innerHTML = linked;
+  recommendationEl.hidden = false;
 }
 
 function renderChart(daily) {
@@ -226,8 +243,8 @@ form.addEventListener("submit", async (ev) => {
     const score = typeof created.sentiment_score === "number"
       ? created.sentiment_score.toFixed(2)
       : "—";
-    const head = `сохранено: ${created.sentiment_label || "neutral"} (${score})`;
-    setStatus(created.recommendation ? `${head} — ${created.recommendation}` : head);
+    setStatus(`сохранено: ${created.sentiment_label || "neutral"} (${score})`);
+    showRecommendation(created.recommendation);
     textInput.value = "";
     emojiInput.value = "";
     await refresh();

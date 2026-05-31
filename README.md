@@ -70,6 +70,9 @@ docker compose up --build
 Модель скачивается на этапе `docker build`, поэтому первый запрос
 работает мгновенно. БД сохраняется в named volume `mood_data`.
 
+> Для сборки нужен интернет (HuggingFace Hub). В рантайме интернет уже
+> не требуется — модель и Chart.js лежат внутри образа/фронта.
+
 ## Структура
 
 ```
@@ -84,7 +87,8 @@ mood-diary/
 ├── frontend/
 │   ├── index.html
 │   ├── style.css          dark-тема
-│   └── app.js             форма, лента, Chart.js
+│   ├── app.js             форма, лента, Chart.js
+│   └── chart.umd.min.js   vendored Chart.js — без обращений к CDN
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md

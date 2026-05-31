@@ -1,10 +1,26 @@
 from datetime import datetime, timezone
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 
 class MoodCreate(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000)
     emoji: str | None = Field(default=None, max_length=8)
+
+    @field_validator("text", mode="after")
+    @classmethod
+    def _text_must_be_non_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("text must not be blank")
+        return v
+
+    @field_validator("emoji", mode="after")
+    @classmethod
+    def _empty_emoji_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class MoodOut(BaseModel):
