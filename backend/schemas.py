@@ -1,5 +1,5 @@
-from datetime import datetime
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 
 class MoodCreate(BaseModel):
@@ -8,6 +8,8 @@ class MoodCreate(BaseModel):
 
 
 class MoodOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
     text: str
@@ -15,8 +17,13 @@ class MoodOut(BaseModel):
     sentiment_label: str | None
     sentiment_score: float | None
 
-    class Config:
-        from_attributes = True
+    @field_serializer("created_at")
+    def _serialize_created_at(self, value: datetime) -> str:
+        # БД (SQLite) хранит naive datetime; в БД мы пишем UTC, поэтому
+        # достраиваем суффикс Z, чтобы фронт корректно сконвертировал в локаль.
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat().replace("+00:00", "Z")
 
 
 class MoodCreated(MoodOut):

@@ -7,11 +7,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Системные либы для tokenizers/transformers; в slim их нет
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        && rm -rf /var/lib/apt/lists/*
-
 COPY backend/requirements.txt /app/backend/requirements.txt
 
 # torch ставим из CPU-индекса, остальное — обычно

@@ -53,8 +53,3 @@ def predict_sentiment(text: str) -> tuple[str, float]:
     if label == "negative":
         return "negative", -prob
     return "neutral", 0.0
-
-
-def warmup() -> None:
-    """Прогрев модели на старте, чтобы первый POST не тормозил."""
-    _get_pipeline()

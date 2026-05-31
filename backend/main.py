@@ -1,34 +1,27 @@
-import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from db import MoodEntry, get_session, init_db
-from ml import predict_sentiment, warmup
+from ml import predict_sentiment
 from recommend import get_recommendation
 from schemas import MoodCreate, MoodCreated, MoodOut
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
-app = FastAPI(title="Mood Diary API", version="0.1.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.on_event("startup")
-def on_startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
-    if os.getenv("ML_WARMUP", "0") == "1":
-        warmup()
+    yield
+
+
+app = FastAPI(title="Mood Diary API", version="0.1.0", lifespan=lifespan)
 
 
 @app.post("/entries", response_model=MoodCreated)
@@ -107,7 +100,11 @@ def analytics_daily(session: Session = Depends(get_session)) -> list[dict]:
 
 @app.get("/analytics/weekday")
 def analytics_weekday(session: Session = Depends(get_session)) -> list[dict]:
-    """Срез по дням недели — как в примере кейса: 'усталость в понедельники'."""
+    """Срез по дням недели — как в примере кейса: 'усталость в понедельники'.
+
+    Группировка идёт по UTC-дате (так хранится created_at). Возможен
+    небольшой сдвиг на границе суток в иных таймзонах — для прототипа ОК.
+    """
     # SQLite strftime('%w') → 0=вс, 1=пн ... 6=сб
     wd = func.strftime("%w", MoodEntry.created_at)
     stmt = (
@@ -176,8 +173,6 @@ if FRONTEND_DIR.exists():
 
 @app.get("/")
 def root():
-    from fastapi.responses import FileResponse, JSONResponse
-
     index = FRONTEND_DIR / "index.html"
     if index.exists():
         return FileResponse(index)

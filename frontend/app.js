@@ -223,7 +223,10 @@ form.addEventListener("submit", async (ev) => {
       method: "POST",
       body: JSON.stringify({ text, emoji: emojiInput.value || null }),
     });
-    const head = `сохранено: ${created.sentiment_label} (${created.sentiment_score.toFixed(2)})`;
+    const score = typeof created.sentiment_score === "number"
+      ? created.sentiment_score.toFixed(2)
+      : "—";
+    const head = `сохранено: ${created.sentiment_label || "neutral"} (${score})`;
     setStatus(created.recommendation ? `${head} — ${created.recommendation}` : head);
     textInput.value = "";
     emojiInput.value = "";
