@@ -4,6 +4,7 @@ const form = document.getElementById("entry-form");
 const textInput = document.getElementById("text");
 const emojiInput = document.getElementById("emoji");
 const tagInput = document.getElementById("tag");
+const commentInput = document.getElementById("comment");
 const submitBtn = document.getElementById("submit-btn");
 const formStatus = document.getElementById("form-status");
 const recommendationEl = document.getElementById("recommendation");
@@ -59,6 +60,9 @@ function renderEntries(entries) {
     const scoreTxt = e.sentiment_score == null ? "" :
       `score ${e.sentiment_score >= 0 ? "+" : ""}${e.sentiment_score.toFixed(2)}`;
     const tagBadge = e.tag ? `<span class="badge tag">#${escapeHtml(e.tag)}</span>` : "";
+    const commentBlock = e.comment
+      ? `<div class="comment" data-id="${e.id}" title="кликни, чтобы изменить">${escapeHtml(e.comment)}</div>`
+      : `<button class="comment-add" data-id="${e.id}">+ комментарий</button>`;
     li.innerHTML = `
       <span class="emoji">${escapeHtml(e.emoji || "")}</span>
       <div class="body">
@@ -69,6 +73,7 @@ function renderEntries(entries) {
           <span>${scoreTxt}</span>
           <span>${fmtDate(e.created_at)}</span>
         </div>
+        ${commentBlock}
       </div>
       <button class="del" data-id="${e.id}" title="удалить">✕</button>
     `;
@@ -289,6 +294,7 @@ form.addEventListener("submit", async (ev) => {
         text,
         emoji: emojiInput.value || null,
         tag: tagInput.value || null,
+        comment: commentInput.value || null,
       }),
     });
     const score = typeof created.sentiment_score === "number"
@@ -299,6 +305,7 @@ form.addEventListener("submit", async (ev) => {
     textInput.value = "";
     emojiInput.value = "";
     tagInput.value = "";
+    commentInput.value = "";
     await refresh();
   } catch (e) {
     setStatus(`ошибка: ${e.message}`, true);
@@ -308,16 +315,37 @@ form.addEventListener("submit", async (ev) => {
 });
 
 entriesList.addEventListener("click", async (ev) => {
-  const btn = ev.target.closest("button.del");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  btn.disabled = true;
-  try {
-    await api(`/entries/${id}`, { method: "DELETE" });
-    await refresh();
-  } catch (e) {
-    setStatus(`не удалось удалить: ${e.message}`, true);
-    btn.disabled = false;
+  const delBtn = ev.target.closest("button.del");
+  if (delBtn) {
+    const id = delBtn.dataset.id;
+    delBtn.disabled = true;
+    try {
+      await api(`/entries/${id}`, { method: "DELETE" });
+      await refresh();
+    } catch (e) {
+      setStatus(`не удалось удалить: ${e.message}`, true);
+      delBtn.disabled = false;
+    }
+    return;
+  }
+
+  const commentTarget = ev.target.closest(".comment, .comment-add");
+  if (commentTarget) {
+    const id = commentTarget.dataset.id;
+    const current = commentTarget.classList.contains("comment")
+      ? commentTarget.textContent
+      : "";
+    const next = window.prompt("Комментарий (пусто = удалить):", current);
+    if (next === null) return; // отмена
+    try {
+      await api(`/entries/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ comment: next || null }),
+      });
+      await refresh();
+    } catch (e) {
+      setStatus(`не удалось сохранить: ${e.message}`, true);
+    }
   }
 });
 

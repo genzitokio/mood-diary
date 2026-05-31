@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from db import MoodEntry, get_session, init_db
 from ml import predict_sentiment
 from recommend import get_recommendation
+from pydantic import BaseModel, Field
+
 from schemas import MoodCreate, MoodCreated, MoodOut
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -31,6 +33,7 @@ def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -
         text=payload.text,
         emoji=payload.emoji,
         tag=payload.tag,
+        comment=payload.comment,
         sentiment_label=label,
         sentiment_score=score,
     )
@@ -43,10 +46,35 @@ def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -
         text=entry.text,
         emoji=entry.emoji,
         tag=entry.tag,
+        comment=entry.comment,
         sentiment_label=entry.sentiment_label,
         sentiment_score=entry.sentiment_score,
         recommendation=get_recommendation(label),
     )
+
+
+class CommentPatch(BaseModel):
+    comment: str | None = Field(default=None, max_length=500)
+
+
+@app.patch("/entries/{entry_id}", response_model=MoodOut)
+def update_comment(
+    entry_id: int,
+    payload: CommentPatch,
+    session: Session = Depends(get_session),
+) -> MoodOut:
+    """Добавить / изменить / снять комментарий к существующей записи."""
+    entry = session.get(MoodEntry, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="entry not found")
+    if payload.comment is not None:
+        c = payload.comment.strip()
+        entry.comment = c or None
+    else:
+        entry.comment = None
+    session.commit()
+    session.refresh(entry)
+    return MoodOut.model_validate(entry)
 
 
 @app.get("/entries", response_model=list[MoodOut])

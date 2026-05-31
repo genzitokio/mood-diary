@@ -104,6 +104,29 @@ button:disabled { opacity: 0.5; cursor: wait; }
 }
 .entry .text { word-wrap: break-word; }
 .entry .emoji { font-size: 20px; }
+.entry .comment {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: rgba(99,102,241,0.07);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  cursor: text;
+}
+.entry .comment-add {
+  margin-top: 6px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.entry .comment-add:hover { color: var(--accent); border-color: var(--accent); }
+#comment { margin-top: 10px; }
 .entry .del {
   background: transparent;
   color: var(--muted);

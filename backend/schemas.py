@@ -6,6 +6,7 @@ class MoodCreate(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000)
     emoji: str | None = Field(default=None, max_length=8)
     tag: str | None = Field(default=None, max_length=32)
+    comment: str | None = Field(default=None, max_length=500)
 
     @field_validator("text", mode="after")
     @classmethod
@@ -31,6 +32,14 @@ class MoodCreate(BaseModel):
         v = v.strip().lower()
         return v or None
 
+    @field_validator("comment", mode="after")
+    @classmethod
+    def _empty_comment_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
 
 class MoodOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -40,6 +49,7 @@ class MoodOut(BaseModel):
     text: str
     emoji: str | None
     tag: str | None
+    comment: str | None
     sentiment_label: str | None
     sentiment_score: float | None
 

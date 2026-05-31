@@ -29,6 +29,7 @@ class MoodEntry(Base):
     text: Mapped[str] = mapped_column(String(2000))
     emoji: Mapped[str | None] = mapped_column(String(8), nullable=True)
     tag: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
     sentiment_label: Mapped[str | None] = mapped_column(String(16), nullable=True)
     sentiment_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
