@@ -22,6 +22,18 @@
           <label>Эмодзи (опц.):
             <input id="emoji" type="text" maxlength="8" placeholder="🔥">
           </label>
+          <label>Тег события (опц.):
+            <input id="tag" type="text" maxlength="32" list="tag-list" placeholder="работа, спорт, сон...">
+            <datalist id="tag-list">
+              <option value="работа">
+              <option value="спорт">
+              <option value="семья">
+              <option value="друзья">
+              <option value="учёба">
+              <option value="сон">
+              <option value="хобби">
+            </datalist>
+          </label>
           <button type="submit" id="submit-btn">Сохранить</button>
         </div>
         <div id="form-status" class="status"></div>
@@ -49,6 +61,12 @@
       <h2>Срез по дням недели</h2>
       <p class="muted" style="margin-top:-6px">средний score настроения по каждому дню недели</p>
       <canvas id="weekday-chart" height="100"></canvas>
+    </section>
+
+    <section class="card" id="tags-card" hidden>
+      <h2>Связь настроения с событиями</h2>
+      <p class="muted" style="margin-top:-6px">средний score по каждому тегу — видно какие активности приносят радость, а какие портят день</p>
+      <canvas id="tags-chart" height="100"></canvas>
     </section>
 
     <section class="card">

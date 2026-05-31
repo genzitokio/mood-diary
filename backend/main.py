@@ -30,6 +30,7 @@ def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -
     entry = MoodEntry(
         text=payload.text,
         emoji=payload.emoji,
+        tag=payload.tag,
         sentiment_label=label,
         sentiment_score=score,
     )
@@ -41,6 +42,7 @@ def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -
         created_at=entry.created_at,
         text=entry.text,
         emoji=entry.emoji,
+        tag=entry.tag,
         sentiment_label=entry.sentiment_label,
         sentiment_score=entry.sentiment_score,
         recommendation=get_recommendation(label),
@@ -48,8 +50,13 @@ def create_entry(payload: MoodCreate, session: Session = Depends(get_session)) -
 
 
 @app.get("/entries", response_model=list[MoodOut])
-def list_entries(session: Session = Depends(get_session)) -> list[MoodEntry]:
+def list_entries(
+    session: Session = Depends(get_session),
+    tag: str | None = None,
+) -> list[MoodOut]:
     stmt = select(MoodEntry).order_by(MoodEntry.created_at.desc())
+    if tag:
+        stmt = stmt.where(MoodEntry.tag == tag.lower())
     return list(session.scalars(stmt).all())
 
 
@@ -123,6 +130,33 @@ def analytics_weekday(session: Session = Depends(get_session)) -> list[dict]:
             "avg_score": float(r.avg_score) if r and r.avg_score is not None else 0.0,
         })
     return out
+
+
+@app.get("/analytics/tags")
+def analytics_tags(session: Session = Depends(get_session)) -> list[dict]:
+    """Связь настроения с событиями: средний score по каждому тегу.
+
+    Это и есть «анализ изменений в настроении (связь с событиями)» из кейса.
+    Например: tag='работа' → avg_score=-0.4, tag='спорт' → avg_score=+0.7.
+    """
+    stmt = (
+        select(
+            MoodEntry.tag,
+            func.count(MoodEntry.id).label("count"),
+            func.avg(MoodEntry.sentiment_score).label("avg_score"),
+        )
+        .where(MoodEntry.tag.is_not(None))
+        .group_by(MoodEntry.tag)
+        .order_by(func.avg(MoodEntry.sentiment_score).desc())
+    )
+    return [
+        {
+            "tag": tag,
+            "count": int(count),
+            "avg_score": float(avg or 0.0),
+        }
+        for tag, count, avg in session.execute(stmt).all()
+    ]
 
 
 @app.get("/analytics/summary")

@@ -12,6 +12,7 @@ def _utcnow() -> datetime:
     # добавит суффикс Z при выдаче клиенту.
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
+
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -27,6 +28,7 @@ class MoodEntry(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
     text: Mapped[str] = mapped_column(String(2000))
     emoji: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    tag: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     sentiment_label: Mapped[str | None] = mapped_column(String(16), nullable=True)
     sentiment_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 

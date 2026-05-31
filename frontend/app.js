@@ -3,6 +3,7 @@ const API = "";
 const form = document.getElementById("entry-form");
 const textInput = document.getElementById("text");
 const emojiInput = document.getElementById("emoji");
+const tagInput = document.getElementById("tag");
 const submitBtn = document.getElementById("submit-btn");
 const formStatus = document.getElementById("form-status");
 const recommendationEl = document.getElementById("recommendation");
@@ -10,11 +11,14 @@ const entriesList = document.getElementById("entries");
 const chartCanvas = document.getElementById("chart");
 const pieCanvas = document.getElementById("pie");
 const weekdayCanvas = document.getElementById("weekday-chart");
+const tagsCard = document.getElementById("tags-card");
+const tagsCanvas = document.getElementById("tags-chart");
 const summaryEl = document.getElementById("summary");
 
 let chart = null;
 let pie = null;
 let weekdayChart = null;
+let tagsChart = null;
 
 function setStatus(msg, isError = false) {
   formStatus.textContent = msg;
@@ -54,12 +58,14 @@ function renderEntries(entries) {
     li.className = `entry ${label}`;
     const scoreTxt = e.sentiment_score == null ? "" :
       `score ${e.sentiment_score >= 0 ? "+" : ""}${e.sentiment_score.toFixed(2)}`;
+    const tagBadge = e.tag ? `<span class="badge tag">#${escapeHtml(e.tag)}</span>` : "";
     li.innerHTML = `
       <span class="emoji">${escapeHtml(e.emoji || "")}</span>
       <div class="body">
         <div class="text">${escapeHtml(e.text)}</div>
         <div class="meta">
           <span class="badge ${label}">${label}</span>
+          ${tagBadge}
           <span>${scoreTxt}</span>
           <span>${fmtDate(e.created_at)}</span>
         </div>
@@ -212,19 +218,59 @@ function renderWeekday(weekday) {
   });
 }
 
+function renderTags(tags) {
+  if (!tags.length) {
+    tagsCard.hidden = true;
+    if (tagsChart) { tagsChart.destroy(); tagsChart = null; }
+    return;
+  }
+  tagsCard.hidden = false;
+
+  const labels = tags.map((t) => `${t.tag} (${t.count})`);
+  const scores = tags.map((t) => t.avg_score);
+  const colors = scores.map((s) =>
+    s > 0.1 ? "#4ade80" : s < -0.1 ? "#f87171" : "#94a3b8"
+  );
+
+  if (tagsChart) tagsChart.destroy();
+  tagsChart = new Chart(tagsCanvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "средний score",
+        data: scores,
+        backgroundColor: colors,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      indexAxis: "y",
+      scales: {
+        x: { suggestedMin: -1, suggestedMax: 1, ticks: { color: "#8b91a3" } },
+        y: { ticks: { color: "#8b91a3" } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
 async function refresh() {
   try {
-    const [entries, daily, summary, weekday] = await Promise.all([
+    const [entries, daily, summary, weekday, tags] = await Promise.all([
       api("/entries"),
       api("/analytics/daily"),
       api("/analytics/summary"),
       api("/analytics/weekday"),
+      api("/analytics/tags"),
     ]);
     renderEntries(entries);
     renderChart(daily);
     renderSummary(summary);
     renderPie(summary);
     renderWeekday(weekday);
+    renderTags(tags);
   } catch (e) {
     setStatus(`ошибка загрузки: ${e.message}`, true);
   }
@@ -239,7 +285,11 @@ form.addEventListener("submit", async (ev) => {
   try {
     const created = await api("/entries", {
       method: "POST",
-      body: JSON.stringify({ text, emoji: emojiInput.value || null }),
+      body: JSON.stringify({
+        text,
+        emoji: emojiInput.value || null,
+        tag: tagInput.value || null,
+      }),
     });
     const score = typeof created.sentiment_score === "number"
       ? created.sentiment_score.toFixed(2)
@@ -248,6 +298,7 @@ form.addEventListener("submit", async (ev) => {
     showRecommendation(created.recommendation);
     textInput.value = "";
     emojiInput.value = "";
+    tagInput.value = "";
     await refresh();
   } catch (e) {
     setStatus(`ошибка: ${e.message}`, true);

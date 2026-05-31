@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_valid
 class MoodCreate(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000)
     emoji: str | None = Field(default=None, max_length=8)
+    tag: str | None = Field(default=None, max_length=32)
 
     @field_validator("text", mode="after")
     @classmethod
@@ -22,6 +23,14 @@ class MoodCreate(BaseModel):
         v = v.strip()
         return v or None
 
+    @field_validator("tag", mode="after")
+    @classmethod
+    def _normalize_tag(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        return v or None
+
 
 class MoodOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -30,6 +39,7 @@ class MoodOut(BaseModel):
     created_at: datetime
     text: str
     emoji: str | None
+    tag: str | None
     sentiment_label: str | None
     sentiment_score: float | None
 
