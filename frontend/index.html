@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Дневник настроений</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Дневник настроений</h1>
+    <p class="muted">ML анализирует тон записи (negative / neutral / positive)</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Новая запись</h2>
+      <form id="entry-form">
+        <textarea id="text" rows="3" maxlength="2000" placeholder="Как день прошёл?" required></textarea>
+        <div class="row">
+          <label>Эмодзи (опц.):
+            <input id="emoji" type="text" maxlength="8" placeholder="🔥">
+          </label>
+          <button type="submit" id="submit-btn">Сохранить</button>
+        </div>
+        <div id="form-status" class="status"></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>График настроения по дням</h2>
+      <canvas id="chart" height="120"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>История</h2>
+      <ul id="entries" class="entries"></ul>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

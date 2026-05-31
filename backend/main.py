@@ -1,13 +1,17 @@
 import os
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from db import MoodEntry, get_session, init_db
 from ml import predict_sentiment, warmup
 from schemas import MoodCreate, MoodOut
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 app = FastAPI(title="Mood Diary API", version="0.1.0")
 
@@ -76,6 +80,15 @@ def analytics_daily(session: Session = Depends(get_session)) -> list[dict]:
     ]
 
 
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+
 @app.get("/")
-def root() -> dict:
-    return {"name": "Mood Diary API", "docs": "/docs"}
+def root():
+    from fastapi.responses import FileResponse, JSONResponse
+
+    index = FRONTEND_DIR / "index.html"
+    if index.exists():
+        return FileResponse(index)
+    return JSONResponse({"name": "Mood Diary API", "docs": "/docs"})
