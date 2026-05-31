@@ -69,15 +69,67 @@ def analytics_daily(session: Session = Depends(get_session)) -> list[dict]:
             day.label("day"),
             func.count(MoodEntry.id).label("count"),
             func.avg(MoodEntry.sentiment_score).label("avg_score"),
+            func.sum(
+                func.iif(MoodEntry.sentiment_label == "positive", 1, 0)
+            ).label("pos"),
+            func.sum(
+                func.iif(MoodEntry.sentiment_label == "negative", 1, 0)
+            ).label("neg"),
+            func.sum(
+                func.iif(MoodEntry.sentiment_label == "neutral", 1, 0)
+            ).label("neu"),
         )
         .group_by(day)
         .order_by(day)
     )
     rows = session.execute(stmt).all()
     return [
-        {"day": r.day, "count": r.count, "avg_score": float(r.avg_score or 0.0)}
+        {
+            "day": r.day,
+            "count": r.count,
+            "avg_score": float(r.avg_score or 0.0),
+            "positive": int(r.pos or 0),
+            "negative": int(r.neg or 0),
+            "neutral": int(r.neu or 0),
+        }
         for r in rows
     ]
+
+
+@app.get("/analytics/summary")
+def analytics_summary(session: Session = Depends(get_session)) -> dict:
+    counts_stmt = (
+        select(MoodEntry.sentiment_label, func.count(MoodEntry.id))
+        .group_by(MoodEntry.sentiment_label)
+    )
+    by_label = {
+        (label or "neutral"): count
+        for label, count in session.execute(counts_stmt).all()
+    }
+
+    total = sum(by_label.values())
+    avg_row = session.execute(
+        select(func.avg(MoodEntry.sentiment_score))
+    ).scalar()
+
+    first_day, last_day = session.execute(
+        select(
+            func.min(func.date(MoodEntry.created_at)),
+            func.max(func.date(MoodEntry.created_at)),
+        )
+    ).one()
+
+    return {
+        "total": total,
+        "avg_score": float(avg_row or 0.0),
+        "by_label": {
+            "positive": by_label.get("positive", 0),
+            "neutral": by_label.get("neutral", 0),
+            "negative": by_label.get("negative", 0),
+        },
+        "first_day": first_day,
+        "last_day": last_day,
+    }
 
 
 if FRONTEND_DIR.exists():

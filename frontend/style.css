@@ -109,3 +109,30 @@ button:disabled { opacity: 0.5; cursor: wait; }
 .badge.positive { background: rgba(74,222,128,0.15); color: var(--pos); }
 .badge.negative { background: rgba(248,113,113,0.15); color: var(--neg); }
 .badge.neutral  { background: rgba(148,163,184,0.15); color: var(--neu); }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.summary .tile {
+  background: #0f1115;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.summary .tile .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.summary .tile .v { font-size: 22px; font-weight: 600; margin-top: 2px; }
+.summary .tile.pos .v { color: var(--pos); }
+.summary .tile.neg .v { color: var(--neg); }
+.summary .tile.neu .v { color: var(--neu); }
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+.chart-row > div { min-width: 0; }
+@media (max-width: 640px) {
+  .chart-row { grid-template-columns: 1fr; }
+}

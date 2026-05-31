@@ -7,8 +7,11 @@ const submitBtn = document.getElementById("submit-btn");
 const formStatus = document.getElementById("form-status");
 const entriesList = document.getElementById("entries");
 const chartCanvas = document.getElementById("chart");
+const pieCanvas = document.getElementById("pie");
+const summaryEl = document.getElementById("summary");
 
 let chart = null;
+let pie = null;
 
 function setStatus(msg, isError = false) {
   formStatus.textContent = msg;
@@ -114,14 +117,62 @@ function renderChart(daily) {
   });
 }
 
+function renderPie(summary) {
+  const data = [
+    summary.by_label.positive,
+    summary.by_label.neutral,
+    summary.by_label.negative,
+  ];
+  if (pie) pie.destroy();
+  pie = new Chart(pieCanvas, {
+    type: "doughnut",
+    data: {
+      labels: ["positive", "neutral", "negative"],
+      datasets: [{
+        data,
+        backgroundColor: ["#4ade80", "#94a3b8", "#f87171"],
+        borderColor: "#181b22",
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#e6e8ef" } } },
+    },
+  });
+}
+
+function renderSummary(summary) {
+  const mood = summary.avg_score;
+  const moodTxt = mood === 0
+    ? "0.00"
+    : `${mood >= 0 ? "+" : ""}${mood.toFixed(2)}`;
+  const period = summary.first_day && summary.last_day
+    ? (summary.first_day === summary.last_day
+        ? summary.first_day
+        : `${summary.first_day} → ${summary.last_day}`)
+    : "—";
+  summaryEl.innerHTML = `
+    <div class="tile"><div class="k">всего записей</div><div class="v">${summary.total}</div></div>
+    <div class="tile"><div class="k">средний score</div><div class="v">${moodTxt}</div></div>
+    <div class="tile pos"><div class="k">positive</div><div class="v">${summary.by_label.positive}</div></div>
+    <div class="tile neu"><div class="k">neutral</div><div class="v">${summary.by_label.neutral}</div></div>
+    <div class="tile neg"><div class="k">negative</div><div class="v">${summary.by_label.negative}</div></div>
+    <div class="tile"><div class="k">период</div><div class="v" style="font-size:13px">${period}</div></div>
+  `;
+}
+
 async function refresh() {
   try {
-    const [entries, daily] = await Promise.all([
+    const [entries, daily, summary] = await Promise.all([
       api("/entries"),
       api("/analytics/daily"),
+      api("/analytics/summary"),
     ]);
     renderEntries(entries);
     renderChart(daily);
+    renderSummary(summary);
+    renderPie(summary);
   } catch (e) {
     setStatus(`ошибка загрузки: ${e.message}`, true);
   }

@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: mood-diary
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_PATH=/data/mood.db
+    volumes:
+      - mood_data:/data
+    restart: unless-stopped
+
+volumes:
+  mood_data:

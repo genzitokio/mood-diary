@@ -1,0 +1,84 @@
+# Дневник настроений
+
+Веб-приложение для ведения дневника, в котором ML автоматически определяет
+эмоциональный тон каждой записи и строит аналитику настроения по дням.
+
+**Кейс 3** из списка курсовых проектов. Реализован соло.
+
+## Стек
+
+| Слой       | Что используется                                                       |
+| ---------- | ---------------------------------------------------------------------- |
+| Backend    | FastAPI, SQLAlchemy 2.0, SQLite                                        |
+| ML         | HuggingFace `transformers`, модель `cardiffnlp/twitter-xlm-roberta-base-sentiment` (мультиязычная: RU + EN) |
+| Frontend   | Vanilla JS + Chart.js (без сборщиков)                                  |
+| Deployment | Docker + docker-compose                                                |
+
+ML-модель используется **как есть, без дообучения** — это публичная sentiment-модель
+с HuggingFace Hub, которая возвращает один из трёх классов: `negative`/`neutral`/`positive`.
+`sentiment_score` хранится со знаком (`-prob` / `0` / `+prob`), чтобы среднее по дню
+имело прямой смысл «настроение дня в диапазоне -1..+1».
+
+## Возможности
+
+- Создание / удаление записей (текст + опциональный эмодзи).
+- Автоматическая классификация настроения каждой новой записи.
+- Лента истории с цветовой индикацией тональности.
+- График среднего настроения и количества записей по дням (line + dual axis).
+- Distribution chart (doughnut): доля positive / neutral / negative.
+- Сводка: всего записей, средний score, период, разбивка по классам.
+
+## API
+
+| Метод  | Путь                  | Назначение                          |
+| ------ | --------------------- | ----------------------------------- |
+| POST   | `/entries`            | создать запись (запускает ML)       |
+| GET    | `/entries`            | список всех записей (DESC)          |
+| DELETE | `/entries/{id}`       | удалить запись                      |
+| GET    | `/analytics/daily`    | агрегат по дням (count, avg, p/n/n) |
+| GET    | `/analytics/summary`  | общая сводка                        |
+| GET    | `/docs`               | Swagger UI                          |
+| GET    | `/`                   | сам фронт                           |
+
+## Запуск локально (без Docker)
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch
+.venv/bin/pip install -r backend/requirements.txt
+cd backend
+../.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+Открыть `http://127.0.0.1:8000`.
+
+При первом POST модель (~1.1 ГБ) скачивается в `backend/models_cache/`
+и потом грузится из локального кэша.
+
+## Запуск в Docker
+
+```bash
+docker compose up --build
+```
+
+Модель скачивается на этапе `docker build`, поэтому первый запрос
+работает мгновенно. БД сохраняется в named volume `mood_data`.
+
+## Структура
+
+```
+mood-diary/
+├── backend/
+│   ├── main.py            FastAPI app, эндпоинты, статика
+│   ├── db.py              SQLAlchemy: MoodEntry, движок, фабрика сессий
+│   ├── ml.py              HuggingFace pipeline (lazy load + lock)
+│   ├── schemas.py         Pydantic I/O схемы
+│   └── requirements.txt
+├── frontend/
+│   ├── index.html
+│   ├── style.css          dark-тема
+│   └── app.js             форма, лента, Chart.js
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
