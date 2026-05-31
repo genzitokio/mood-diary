@@ -3,7 +3,10 @@ uvicorn[standard]==0.48.0
 sqlalchemy==2.0.50
 pydantic==2.13.4
 
-# День 2 (ML) — добавим:
-# transformers
-# torch
-# sentencepiece
+# ML stack
+transformers>=4.57,<5
+huggingface_hub<1
+torch>=2.4
+sentencepiece
+protobuf
+numpy

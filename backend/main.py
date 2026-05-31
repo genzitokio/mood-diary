@@ -1,11 +1,12 @@
-from datetime import date, datetime
-from fastapi import FastAPI, Depends, HTTPException
+import os
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from db import MoodEntry, get_session, init_db
-from ml import predict_sentiment
+from ml import predict_sentiment, warmup
 from schemas import MoodCreate, MoodOut
 
 app = FastAPI(title="Mood Diary API", version="0.1.0")
@@ -21,6 +22,8 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
+    if os.getenv("ML_WARMUP", "0") == "1":
+        warmup()
 
 
 @app.post("/entries", response_model=MoodOut)
